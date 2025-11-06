@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thailand Trip Expenses</title>
+    <title>Thailand Trip Expenses - Shared</title>
     <style>
         * {
             margin: 0;
@@ -37,8 +37,27 @@
         .subtitle {
             text-align: center;
             color: #666;
-            margin-bottom: 30px;
+            margin-bottom: 10px;
             font-size: 14px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 8px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status.connected {
+            background: #4caf50;
+            color: white;
+        }
+
+        .status.disconnected {
+            background: #ff9800;
+            color: white;
         }
 
         .form-group {
@@ -50,7 +69,7 @@
             margin-bottom: 8px;
             color: #333;
             font-weight: 600;
-            font-size: 14px;
+            fontSize: 14px;
         }
 
         select, input {
@@ -89,12 +108,17 @@
             transition: all 0.3s;
         }
 
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .btn-add {
             background: #667eea;
             color: white;
         }
 
-        .btn-add:hover {
+        .btn-add:hover:not(:disabled) {
             background: #5568d3;
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
@@ -105,7 +129,7 @@
             color: white;
         }
 
-        .btn-clear:hover {
+        .btn-clear:hover:not(:disabled) {
             background: #da190b;
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(244, 67, 54, 0.4);
@@ -147,7 +171,7 @@
 
         .expense-list {
             margin-top: 20px;
-            max-height: 300px;
+            max-height: 400px;
             overflow-y: auto;
         }
 
@@ -160,6 +184,18 @@
             background: #fafafa;
             border-radius: 8px;
             font-size: 14px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .expense-info {
@@ -211,6 +247,21 @@
             font-weight: 700;
         }
 
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
         @media (max-width: 480px) {
             .container {
                 padding: 20px;
@@ -225,7 +276,11 @@
 <body>
     <div class="container">
         <h1>🇹🇭 Thailand Trip Expenses</h1>
-        <p class="subtitle">Track your group expenses</p>
+        <p class="subtitle">Shared expense tracker</p>
+        
+        <div id="status" class="status disconnected">Connecting to Firebase...</div>
+        
+        <div id="error" class="error" style="display: none;"></div>
 
         <form id="expenseForm">
             <div class="form-group">
@@ -250,7 +305,7 @@
             </div>
 
             <div class="btn-group">
-                <button type="submit" class="btn-add">Add Expense</button>
+                <button type="submit" class="btn-add" id="addBtn">Add Expense</button>
                 <button type="button" class="btn-clear" id="clearBtn">Clear All</button>
             </div>
         </form>
@@ -267,50 +322,97 @@
         </div>
     </div>
 
-    <script>
-        // Initialize expenses array
+    <!-- Firebase SDKs -->
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAzJaSqv7vKLZKHNDYbu2G2619beZMmVZA",
+            authDomain: "thailand-expenses.firebaseapp.com",
+            projectId: "thailand-expenses",
+            storageBucket: "thailand-expenses.firebasestorage.app",
+            messagingSenderId: "640149353559",
+            appId: "1:640149353559:web:c2938b1ff3366e0f6adf12"
+        };
+
+        let db;
         let expenses = [];
 
-        // Load from localStorage on page load
-        function loadExpenses() {
-            const saved = localStorage.getItem('thailandExpenses');
-            if (saved) {
-                try {
-                    expenses = JSON.parse(saved);
-                } catch (e) {
-                    console.error('Error loading expenses:', e);
-                    expenses = [];
-                }
+        // Initialize Firebase
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            
+            // Listen for real-time updates
+            const q = query(collection(db, 'expenses'), orderBy('timestamp', 'desc'));
+            
+            onSnapshot(q, (snapshot) => {
+                expenses = [];
+                snapshot.forEach((doc) => {
+                    expenses.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                
+                displayExpenses();
+                updateTotals();
+                updateStatus(true);
+            }, (error) => {
+                console.error('Error listening to expenses:', error);
+                showError('Error connecting to database. Please check your Firebase setup.');
+                updateStatus(false);
+            });
+
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+            showError('Firebase configuration error. Please check your config.');
+            updateStatus(false);
+        }
+
+        // Update connection status
+        function updateStatus(connected) {
+            const statusEl = document.getElementById('status');
+            if (connected) {
+                statusEl.textContent = '🟢 Connected - Real-time sync active';
+                statusEl.className = 'status connected';
+                document.getElementById('addBtn').disabled = false;
+                document.getElementById('clearBtn').disabled = false;
+            } else {
+                statusEl.textContent = '🔴 Disconnected - Check your internet';
+                statusEl.className = 'status disconnected';
+                document.getElementById('addBtn').disabled = true;
+                document.getElementById('clearBtn').disabled = true;
             }
         }
 
-        // Save to localStorage
-        function saveExpenses() {
-            localStorage.setItem('thailandExpenses', JSON.stringify(expenses));
+        // Show error message
+        function showError(message) {
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
         }
 
-        // Display all expenses
+        // Display expenses
         function displayExpenses() {
             const expenseList = document.getElementById('expenseList');
             
             if (expenses.length === 0) {
-                expenseList.innerHTML = '';
+                expenseList.innerHTML = '<div class="loading">No expenses yet. Add your first one!</div>';
                 return;
             }
 
-            // Sort by date (newest first)
-            const sortedExpenses = [...expenses].sort((a, b) => 
-                new Date(b.date) - new Date(a.date)
-            );
-
-            expenseList.innerHTML = sortedExpenses.map(expense => `
+            expenseList.innerHTML = expenses.map(expense => `
                 <div class="expense-item">
                     <div class="expense-info">
                         <div class="expense-name">${expense.person}</div>
                         <div class="expense-description">${expense.description}</div>
                     </div>
                     <span class="expense-amount">₪${expense.amount.toFixed(2)}</span>
-                    <button class="expense-delete" onclick="deleteExpense(${expense.id})">✕</button>
+                    <button class="expense-delete" onclick="deleteExpense('${expense.id}')">✕</button>
                 </div>
             `).join('');
         }
@@ -338,74 +440,65 @@
                 </div>
             `).join('');
 
-            // Grand total
             const grandTotal = Object.values(totals).reduce((sum, amount) => sum + amount, 0);
             document.getElementById('grandTotal').textContent = `₪${grandTotal.toFixed(2)}`;
         }
 
-        // Delete expense
-        function deleteExpense(id) {
-            if (confirm('Delete this expense?')) {
-                expenses = expenses.filter(expense => expense.id !== id);
-                saveExpenses();
-                displayExpenses();
-                updateTotals();
-            }
-        }
-
-        // Clear all expenses
-        function clearAllExpenses() {
-            if (confirm('Are you sure you want to clear all expenses? This cannot be undone.')) {
-                expenses = [];
-                saveExpenses();
-                displayExpenses();
-                updateTotals();
-            }
-        }
-
-        // Form submission handler
-        document.getElementById('expenseForm').addEventListener('submit', function(e) {
+        // Add expense
+        document.getElementById('expenseForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const person = document.getElementById('personName').value;
             const description = document.getElementById('description').value;
-            const amountInput = document.getElementById('amount').value;
-            const amount = parseFloat(amountInput);
+            const amount = parseFloat(document.getElementById('amount').value);
 
-            // Validate
-            if (!person || !description || !amountInput || isNaN(amount) || amount <= 0) {
+            if (!person || !description || !amount || amount <= 0) {
                 alert('Please fill in all fields correctly');
                 return;
             }
 
-            // Create expense object
-            const expense = {
-                id: Date.now(),
-                person: person,
-                description: description,
-                amount: amount,
-                date: new Date().toISOString()
-            };
+            try {
+                await addDoc(collection(db, 'expenses'), {
+                    person: person,
+                    description: description,
+                    amount: amount,
+                    timestamp: new Date()
+                });
 
-            // Add to array
-            expenses.push(expense);
-            
-            // Save and update display
-            saveExpenses();
-            displayExpenses();
-            updateTotals();
-
-            // Reset form
-            this.reset();
+                // Reset form
+                this.reset();
+            } catch (error) {
+                console.error('Error adding expense:', error);
+                alert('Error adding expense. Please try again.');
+            }
         });
 
-        // Clear button handler
-        document.getElementById('clearBtn').addEventListener('click', clearAllExpenses);
+        // Delete expense
+        window.deleteExpense = async function(id) {
+            if (confirm('Delete this expense?')) {
+                try {
+                    await deleteDoc(doc(db, 'expenses', id));
+                } catch (error) {
+                    console.error('Error deleting expense:', error);
+                    alert('Error deleting expense. Please try again.');
+                }
+            }
+        };
 
-        // Initialize on page load
-        loadExpenses();
-        displayExpenses();
-        updateTotals();
+        // Clear all expenses
+        document.getElementById('clearBtn').addEventListener('click', async function() {
+            if (confirm('Are you sure you want to clear ALL expenses? This cannot be undone!')) {
+                try {
+                    const deletePromises = expenses.map(expense => 
+                        deleteDoc(doc(db, 'expenses', expense.id))
+                    );
+                    await Promise.all(deletePromises);
+                } catch (error) {
+                    console.error('Error clearing expenses:', error);
+                    alert('Error clearing expenses. Please try again.');
+                }
+            }
+        });
     </script>
 </body>
 </html>
