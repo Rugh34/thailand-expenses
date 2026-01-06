@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thailand Trip Expenses - Shared</title>
+    <title>Thailand Trip Expenses</title>
     <style>
         * {
             margin: 0;
@@ -16,69 +16,6 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
-        }
-
-        .login-container {
-            max-width: 400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            padding: 40px 30px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            text-align: center;
-        }
-
-        .login-container h1 {
-            margin-bottom: 10px;
-        }
-
-        .login-container p {
-            color: #666;
-            margin-bottom: 30px;
-        }
-
-        .login-input {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .login-input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .btn-login {
-            width: 100%;
-            padding: 15px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-login:hover {
-            background: #5568d3;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .login-error {
-            color: #f44336;
-            margin-top: 10px;
-            font-size: 14px;
-        }
-
-        .hidden {
-            display: none;
         }
 
         .container {
@@ -132,7 +69,7 @@
             margin-bottom: 8px;
             color: #333;
             font-weight: 600;
-            fontSize: 14px;
+            font-size: 14px;
         }
 
         select, input {
@@ -221,34 +158,6 @@
             color: #333;
             margin-bottom: 15px;
             font-size: 20px;
-        }
-
-        .total-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            margin-bottom: 10px;
-            background: #f5f5f5;
-            border-radius: 10px;
-            font-size: 16px;
-        }
-
-        .total-name {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .total-amount {
-            font-weight: 700;
-            color: #667eea;
-            font-size: 18px;
-        }
-
-        .expense-list {
-            margin-top: 20px;
-            max-height: none;
-            overflow-y: visible;
         }
 
         .person-section {
@@ -402,17 +311,7 @@
     </style>
 </head>
 <body>
-    <!-- Login Screen -->
-    <div id="loginContainer" class="login-container">
-        <h1>🇹🇭 Thailand Trip</h1>
-        <p>Enter password to access expenses</p>
-        <input type="password" id="passwordInput" class="login-input" placeholder="Enter password" autocomplete="off">
-        <button onclick="checkPassword()" class="btn-login">Login</button>
-        <div id="loginError" class="login-error"></div>
-    </div>
-
-    <!-- Main App (hidden until login) -->
-    <div id="mainApp" class="container hidden">
+    <div class="container">
         <h1>🇹🇭 Thailand Trip Expenses</h1>
         <p class="subtitle">Shared expense tracker</p>
         
@@ -460,41 +359,8 @@
         </div>
     </div>
 
+    <!-- Firebase SDKs -->
     <script type="module">
-   
-        const APP_PASSWORD = "bebe2k4k";
-
-        if (sessionStorage.getItem('authenticated') === 'true') {
-            showMainApp();
-        }
-
-        window.checkPassword = function() {
-            const input = document.getElementById('passwordInput').value;
-            const errorDiv = document.getElementById('loginError');
-            
-            if (input === APP_PASSWORD) {
-                sessionStorage.setItem('authenticated', 'true');
-                showMainApp();
-                errorDiv.textContent = '';
-            } else {
-                errorDiv.textContent = '❌ Wrong password. Try again.';
-                document.getElementById('passwordInput').value = '';
-            }
-        };
-
-        // Allow Enter key to submit
-        document.getElementById('passwordInput')?.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                checkPassword();
-            }
-        });
-
-        // Show main app
-        function showMainApp() {
-            document.getElementById('loginContainer').classList.add('hidden');
-            document.getElementById('mainApp').classList.remove('hidden');
-        }
-
         // Import Firebase modules
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
@@ -534,13 +400,13 @@
                 updateStatus(true);
             }, (error) => {
                 console.error('Error listening to expenses:', error);
-                showError('Error connecting to database. Please check your Firebase setup.');
+                showError('Error connecting to database.');
                 updateStatus(false);
             });
 
         } catch (error) {
             console.error('Firebase initialization error:', error);
-            showError('Firebase configuration error. Please check your config.');
+            showError('Firebase configuration error.');
             updateStatus(false);
         }
 
@@ -643,7 +509,7 @@
             }
         };
 
-        // Update totals (just grand total now)
+        // Update totals
         function updateTotals() {
             const totals = {
                 'Aviv': 0,
@@ -683,7 +549,6 @@
                     timestamp: new Date()
                 });
 
-                // Reset form
                 this.reset();
             } catch (error) {
                 console.error('Error adding expense:', error);
@@ -725,15 +590,13 @@
                 return;
             }
 
-            // Prepare CSV data
             let csvContent = "Person,Description,Amount (₪),Date\n";
             
-            // Sort expenses by person then date
             const sortedForExport = [...expenses].sort((a, b) => {
                 if (a.person !== b.person) {
                     return a.person.localeCompare(b.person);
                 }
-                return new Date(a.timestamp) - new Date(b.timestamp);
+                return new Date(a.timestamp.seconds * 1000) - new Date(b.timestamp.seconds * 1000);
             });
 
             sortedForExport.forEach(expense => {
@@ -742,7 +605,6 @@
                 csvContent += row;
             });
 
-            // Add totals section
             csvContent += "\n";
             csvContent += "Summary\n";
             csvContent += "Person,Total (₪)\n";
@@ -767,7 +629,6 @@
             const grandTotal = Object.values(totals).reduce((sum, amount) => sum + amount, 0);
             csvContent += `"GRAND TOTAL",${grandTotal.toFixed(2)}\n`;
 
-            // Create download
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
