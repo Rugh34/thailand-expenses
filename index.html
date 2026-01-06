@@ -429,7 +429,7 @@
         <form id="loginForm">
             <div class="form-group">
                 <label for="emailInput">אימייל</label>
-                <input type="email" id="emailInput" class="login-input" placeholder="your@thailand2026.com" required autocomplete="email">
+                <input type="email" id="emailInput" class="login-input" placeholder="your@email.com" required autocomplete="email">
             </div>
             
             <div class="form-group">
@@ -497,21 +497,21 @@
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
+    <!-- Firebase SDKs - Version 10.8.0 (Latest) -->
     <script type="module">
         // Import Firebase modules
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
-        // Firebase Configuration
+        // Firebase Configuration - NEW API KEY
         const firebaseConfig = {
-            apiKey: "AIzaSyAzJaSqv7vKLZKHNDYbu2G2619beZMmVZA",
+            apiKey: "AIzaSyDmXgWLstLLU7pM5t4K-mDFbpAZlM9pnGo",
             authDomain: "thailand-expenses.firebaseapp.com",
             projectId: "thailand-expenses",
             storageBucket: "thailand-expenses.firebasestorage.app",
             messagingSenderId: "640149353559",
-            appId: "1:640149353559:web:c2938b1ff3366e0f6adf12"
+            appId: "1:640149353559:web:51d4192fa6a627366adf12"
         };
 
         // Initialize Firebase
@@ -522,14 +522,18 @@
         let expenses = [];
         let currentUser = null;
 
+        console.log('Firebase initialized successfully!');
+
         // Check authentication state
         onAuthStateChanged(auth, (user) => {
             if (user) {
+                console.log('User logged in:', user.email);
                 currentUser = user;
                 showMainApp();
                 document.getElementById('userEmail').textContent = user.email;
                 startListeningToExpenses();
             } else {
+                console.log('No user logged in');
                 showLoginScreen();
             }
         });
@@ -543,25 +547,27 @@
             const loginBtn = document.getElementById('loginBtn');
             const errorDiv = document.getElementById('loginError');
             
+            console.log('Attempting login with:', email);
+            
             loginBtn.disabled = true;
             loginBtn.textContent = 'מתחבר...';
             errorDiv.style.display = 'none';
             
             try {
-                await signInWithEmailAndPassword(auth, email, password);
-                // Success - onAuthStateChanged will handle the rest
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                console.log('Login successful!', userCredential.user);
             } catch (error) {
                 console.error('Login error:', error);
                 errorDiv.style.display = 'block';
                 
-                if (error.code === 'auth/invalid-credential') {
+                if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
                     errorDiv.textContent = '❌ אימייל או סיסמה שגויים';
                 } else if (error.code === 'auth/too-many-requests') {
                     errorDiv.textContent = '❌ יותר מדי ניסיונות. נסה שוב מאוחר יותר.';
                 } else if (error.code === 'auth/invalid-email') {
                     errorDiv.textContent = '❌ כתובת אימייל לא תקינה';
                 } else {
-                    errorDiv.textContent = '❌ התחברות נכשלה. נסה שוב.';
+                    errorDiv.textContent = `❌ שגיאה: ${error.message}`;
                 }
                 
                 loginBtn.disabled = false;
@@ -574,6 +580,7 @@
             if (confirm('האם אתה בטוח שברצונך להתנתק?')) {
                 try {
                     await signOut(auth);
+                    console.log('Logged out successfully');
                 } catch (error) {
                     console.error('Logout error:', error);
                     alert('שגיאה בהתנתקות. נסה שוב.');
@@ -594,9 +601,11 @@
 
         // Start listening to expenses
         function startListeningToExpenses() {
+            console.log('Starting to listen to expenses...');
             const q = query(collection(db, 'expenses'), orderBy('timestamp', 'desc'));
             
             onSnapshot(q, (snapshot) => {
+                console.log('Got expenses snapshot:', snapshot.size, 'documents');
                 expenses = [];
                 snapshot.forEach((doc) => {
                     expenses.push({
@@ -647,7 +656,6 @@
                 return;
             }
 
-            // Group expenses by person
             const groupedExpenses = {
                 'Aviv': [],
                 'Ido': [],
@@ -661,13 +669,11 @@
                 }
             });
 
-            // Calculate totals for each person
             const personTotals = {};
             Object.keys(groupedExpenses).forEach(person => {
                 personTotals[person] = groupedExpenses[person].reduce((sum, exp) => sum + exp.amount, 0);
             });
 
-            // Hebrew names mapping
             const hebrewNames = {
                 'Aviv': 'אביב',
                 'Ido': 'עידו',
@@ -675,7 +681,6 @@
                 'Shoval': 'שובל'
             };
 
-            // Build HTML for each person section
             expenseList.innerHTML = Object.entries(groupedExpenses).map(([person, personExpenses]) => {
                 if (personExpenses.length === 0) return '';
                 
@@ -761,12 +766,14 @@
             }
 
             try {
+                console.log('Adding expense...');
                 await addDoc(collection(db, 'expenses'), {
                     person: person,
                     description: description,
                     amount: amount,
                     timestamp: new Date()
                 });
+                console.log('Expense added successfully!');
 
                 this.reset();
             } catch (error) {
@@ -785,6 +792,7 @@
             if (confirm('למחוק הוצאה זו?')) {
                 try {
                     await deleteDoc(doc(db, 'expenses', id));
+                    console.log('Expense deleted successfully!');
                 } catch (error) {
                     console.error('Error deleting expense:', error);
                     alert('שגיאה במחיקת הוצאה. נסה שוב.');
@@ -805,6 +813,7 @@
                         deleteDoc(doc(db, 'expenses', expense.id))
                     );
                     await Promise.all(deletePromises);
+                    console.log('All expenses cleared!');
                 } catch (error) {
                     console.error('Error clearing expenses:', error);
                     alert('שגיאה בניקוי הוצאות. נסה שוב.');
