@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,6 +16,96 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
+        }
+
+        .login-container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .login-container h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .login-container p {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .login-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn-login:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .login-error {
+            color: #f44336;
+            background: #ffebee;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 14px;
+            text-align: center;
+            display: none;
+        }
+
+        .hidden {
+            display: none;
         }
 
         .container {
@@ -41,6 +131,38 @@
             font-size: 14px;
         }
 
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .user-email {
+            font-size: 14px;
+            color: #666;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .btn-logout {
+            background: #ff5252;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .btn-logout:hover {
+            background: #ff1744;
+        }
+
         .status {
             text-align: center;
             padding: 8px;
@@ -58,18 +180,6 @@
         .status.disconnected {
             background: #ff9800;
             color: white;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 600;
-            font-size: 14px;
         }
 
         select, input {
@@ -300,7 +410,7 @@
         }
 
         @media (max-width: 480px) {
-            .container {
+            .container, .login-container {
                 padding: 20px;
             }
             
@@ -311,51 +421,79 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🇹🇭 Thailand Trip Expenses</h1>
-        <p class="subtitle">Shared expense tracker</p>
+    <!-- Login Screen -->
+    <div id="loginContainer" class="login-container">
+        <h1>🇹🇭 טיול תאילנד</h1>
+        <p>התחבר כדי לגשת למעקב הוצאות</p>
         
-        <div id="status" class="status disconnected">Connecting to Firebase...</div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="emailInput">אימייל</label>
+                <input type="email" id="emailInput" class="login-input" placeholder="your@thailand2026.com" required autocomplete="email">
+            </div>
+            
+            <div class="form-group">
+                <label for="passwordInput">סיסמה</label>
+                <input type="password" id="passwordInput" class="login-input" placeholder="הכנס סיסמה" required autocomplete="current-password">
+            </div>
+            
+            <button type="submit" class="btn-login" id="loginBtn">התחבר</button>
+        </form>
+        
+        <div id="loginError" class="login-error"></div>
+    </div>
+
+    <!-- Main App (hidden until login) -->
+    <div id="mainApp" class="container hidden">
+        <h1>🇹🇭 הוצאות טיול תאילנד</h1>
+        <p class="subtitle">מעקב הוצאות משותף</p>
+        
+        <div class="user-info">
+            <span class="user-email" id="userEmail"></span>
+            <button class="btn-logout" onclick="logout()">התנתק</button>
+        </div>
+        
+        <div id="status" class="status disconnected">מתחבר ל-Firebase...</div>
         
         <div id="error" class="error" style="display: none;"></div>
 
         <form id="expenseForm">
             <div class="form-group">
-                <label for="personName">Who paid?</label>
+                <label for="personName">מי שילם?</label>
                 <select id="personName" required>
-                    <option value="">Select a person</option>
-                    <option value="Aviv">Aviv</option>
-                    <option value="Ido">Ido</option>
-                    <option value="Roy">Roy</option>
-                    <option value="Shoval">Shoval</option>
+                    <option value="">בחר אדם</option>
+                    <option value="Aviv">אביב</option>
+                    <option value="Ido">עידו</option>
+                    <option value="Roy">רועי</option>
+                    <option value="Shoval">שובל</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label for="description">I paid for</label>
-                <input type="text" id="description" placeholder="e.g., Dinner, Taxi, Hotel" required>
+                <label for="description">שילמתי עבור</label>
+                <input type="text" id="description" placeholder="למשל: ארוחת ערב, מונית, מלון" required>
             </div>
 
             <div class="form-group">
-                <label for="amount">Amount (₪)</label>
+                <label for="amount">סכום (₪)</label>
                 <input type="number" id="amount" placeholder="0.00" step="0.01" min="0.01" required>
             </div>
 
             <div class="btn-group">
-                <button type="submit" class="btn-add" id="addBtn">Add Expense</button>
-                <button type="button" class="btn-clear" id="clearBtn">Clear All</button>
+                <button type="submit" class="btn-add" id="addBtn">הוסף הוצאה</button>
+                <button type="button" class="btn-clear" id="clearBtn">נקה הכל</button>
             </div>
         </form>
 
         <div class="totals">
-            <h2>Individual Totals</h2>
+            <h2>סיכומים אישיים</h2>
             <div id="expenseList"></div>
             <div class="grand-total">
-                <span>GRAND TOTAL</span>
+                <span>סה"כ כללי</span>
                 <span id="grandTotal">₪0.00</span>
             </div>
             
-            <button type="button" class="btn-export" id="exportBtn">📊 Export to Excel</button>
+            <button type="button" class="btn-export" id="exportBtn">📊 ייצא לאקסל</button>
         </div>
     </div>
 
@@ -363,6 +501,7 @@
     <script type="module">
         // Import Firebase modules
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         // Firebase Configuration
@@ -375,15 +514,86 @@
             appId: "1:640149353559:web:c2938b1ff3366e0f6adf12"
         };
 
-        let db;
-        let expenses = [];
-
         // Initialize Firebase
-        try {
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        let expenses = [];
+        let currentUser = null;
+
+        // Check authentication state
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                showMainApp();
+                document.getElementById('userEmail').textContent = user.email;
+                startListeningToExpenses();
+            } else {
+                showLoginScreen();
+            }
+        });
+
+        // Login form handler
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
             
-            // Listen for real-time updates
+            const email = document.getElementById('emailInput').value;
+            const password = document.getElementById('passwordInput').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const errorDiv = document.getElementById('loginError');
+            
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'מתחבר...';
+            errorDiv.style.display = 'none';
+            
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                // Success - onAuthStateChanged will handle the rest
+            } catch (error) {
+                console.error('Login error:', error);
+                errorDiv.style.display = 'block';
+                
+                if (error.code === 'auth/invalid-credential') {
+                    errorDiv.textContent = '❌ אימייל או סיסמה שגויים';
+                } else if (error.code === 'auth/too-many-requests') {
+                    errorDiv.textContent = '❌ יותר מדי ניסיונות. נסה שוב מאוחר יותר.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorDiv.textContent = '❌ כתובת אימייל לא תקינה';
+                } else {
+                    errorDiv.textContent = '❌ התחברות נכשלה. נסה שוב.';
+                }
+                
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'התחבר';
+            }
+        });
+
+        // Logout function
+        window.logout = async function() {
+            if (confirm('האם אתה בטוח שברצונך להתנתק?')) {
+                try {
+                    await signOut(auth);
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    alert('שגיאה בהתנתקות. נסה שוב.');
+                }
+            }
+        };
+
+        // Show/hide screens
+        function showLoginScreen() {
+            document.getElementById('loginContainer').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+        }
+
+        function showMainApp() {
+            document.getElementById('loginContainer').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+        }
+
+        // Start listening to expenses
+        function startListeningToExpenses() {
             const q = query(collection(db, 'expenses'), orderBy('timestamp', 'desc'));
             
             onSnapshot(q, (snapshot) => {
@@ -400,26 +610,21 @@
                 updateStatus(true);
             }, (error) => {
                 console.error('Error listening to expenses:', error);
-                showError('Error connecting to database.');
+                showError('שגיאה בחיבור למסד הנתונים.');
                 updateStatus(false);
             });
-
-        } catch (error) {
-            console.error('Firebase initialization error:', error);
-            showError('Firebase configuration error.');
-            updateStatus(false);
         }
 
         // Update connection status
         function updateStatus(connected) {
             const statusEl = document.getElementById('status');
             if (connected) {
-                statusEl.textContent = '🟢 Connected - Real-time sync active';
+                statusEl.textContent = '🟢 מחובר - סנכרון בזמן אמת פעיל';
                 statusEl.className = 'status connected';
                 document.getElementById('addBtn').disabled = false;
                 document.getElementById('clearBtn').disabled = false;
             } else {
-                statusEl.textContent = '🔴 Disconnected - Check your internet';
+                statusEl.textContent = '🔴 מנותק - בדוק את החיבור לאינטרנט';
                 statusEl.className = 'status disconnected';
                 document.getElementById('addBtn').disabled = true;
                 document.getElementById('clearBtn').disabled = true;
@@ -438,7 +643,7 @@
             const expenseList = document.getElementById('expenseList');
             
             if (expenses.length === 0) {
-                expenseList.innerHTML = '<div class="loading">No expenses yet. Add your first one!</div>';
+                expenseList.innerHTML = '<div class="loading">אין עדיין הוצאות. הוסף את הראשונה!</div>';
                 return;
             }
 
@@ -462,31 +667,40 @@
                 personTotals[person] = groupedExpenses[person].reduce((sum, exp) => sum + exp.amount, 0);
             });
 
+            // Hebrew names mapping
+            const hebrewNames = {
+                'Aviv': 'אביב',
+                'Ido': 'עידו',
+                'Roy': 'רועי',
+                'Shoval': 'שובל'
+            };
+
             // Build HTML for each person section
             expenseList.innerHTML = Object.entries(groupedExpenses).map(([person, personExpenses]) => {
                 if (personExpenses.length === 0) return '';
                 
                 const total = personTotals[person];
                 const count = personExpenses.length;
+                const hebrewName = hebrewNames[person] || person;
                 
                 return `
                     <div class="person-section">
                         <div class="person-header" onclick="togglePerson('${person}')">
-                            <div class="person-header-left">
-                                <span class="person-name-header">${person}</span>
-                                <span class="person-count">${count} expense${count !== 1 ? 's' : ''}</span>
-                            </div>
-                            <span class="person-total-header">₪${total.toFixed(2)}</span>
                             <span class="arrow" id="arrow-${person}">▼</span>
+                            <span class="person-total-header">₪${total.toFixed(2)}</span>
+                            <div class="person-header-left">
+                                <span class="person-count">${count} הוצאות</span>
+                                <span class="person-name-header">${hebrewName}</span>
+                            </div>
                         </div>
                         <div class="person-expenses" id="expenses-${person}">
                             ${personExpenses.map(expense => `
                                 <div class="expense-item">
+                                    <button class="expense-delete" onclick="deleteExpense('${expense.id}')">✕</button>
+                                    <span class="expense-amount">₪${expense.amount.toFixed(2)}</span>
                                     <div class="expense-info">
                                         <div class="expense-description">${expense.description}</div>
                                     </div>
-                                    <span class="expense-amount">₪${expense.amount.toFixed(2)}</span>
-                                    <button class="expense-delete" onclick="deleteExpense('${expense.id}')">✕</button>
                                 </div>
                             `).join('')}
                         </div>
@@ -532,12 +746,17 @@
         document.getElementById('expenseForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
+            if (!currentUser) {
+                alert('עליך להיות מחובר כדי להוסיף הוצאות');
+                return;
+            }
+            
             const person = document.getElementById('personName').value;
             const description = document.getElementById('description').value;
             const amount = parseFloat(document.getElementById('amount').value);
 
             if (!person || !description || !amount || amount <= 0) {
-                alert('Please fill in all fields correctly');
+                alert('אנא מלא את כל השדות כראוי');
                 return;
             }
 
@@ -552,25 +771,35 @@
                 this.reset();
             } catch (error) {
                 console.error('Error adding expense:', error);
-                alert('Error adding expense. Please try again.');
+                alert('שגיאה בהוספת הוצאה. נסה שוב.');
             }
         });
 
         // Delete expense
         window.deleteExpense = async function(id) {
-            if (confirm('Delete this expense?')) {
+            if (!currentUser) {
+                alert('עליך להיות מחובר כדי למחוק הוצאות');
+                return;
+            }
+            
+            if (confirm('למחוק הוצאה זו?')) {
                 try {
                     await deleteDoc(doc(db, 'expenses', id));
                 } catch (error) {
                     console.error('Error deleting expense:', error);
-                    alert('Error deleting expense. Please try again.');
+                    alert('שגיאה במחיקת הוצאה. נסה שוב.');
                 }
             }
         };
 
         // Clear all expenses
         document.getElementById('clearBtn').addEventListener('click', async function() {
-            if (confirm('Are you sure you want to clear ALL expenses? This cannot be undone!')) {
+            if (!currentUser) {
+                alert('עליך להיות מחובר כדי לנקות הוצאות');
+                return;
+            }
+            
+            if (confirm('האם אתה בטוח שברצונך למחוק את כל ההוצאות? לא ניתן לבטל פעולה זו!')) {
                 try {
                     const deletePromises = expenses.map(expense => 
                         deleteDoc(doc(db, 'expenses', expense.id))
@@ -578,7 +807,7 @@
                     await Promise.all(deletePromises);
                 } catch (error) {
                     console.error('Error clearing expenses:', error);
-                    alert('Error clearing expenses. Please try again.');
+                    alert('שגיאה בניקוי הוצאות. נסה שוב.');
                 }
             }
         });
@@ -586,7 +815,7 @@
         // Export to Excel/CSV
         document.getElementById('exportBtn').addEventListener('click', function() {
             if (expenses.length === 0) {
-                alert('No expenses to export!');
+                alert('אין הוצאות לייצא!');
                 return;
             }
 
@@ -600,7 +829,7 @@
             });
 
             sortedForExport.forEach(expense => {
-                const date = new Date(expense.timestamp.seconds * 1000).toLocaleDateString('en-GB');
+                const date = new Date(expense.timestamp.seconds * 1000).toLocaleDateString('he-IL');
                 const row = `"${expense.person}","${expense.description}",${expense.amount.toFixed(2)},"${date}"\n`;
                 csvContent += row;
             });
